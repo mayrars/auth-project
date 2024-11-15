@@ -256,7 +256,11 @@ exports.sendForgotPasswordCode = async (req, res) => {
 exports.verifyForgotPasswordCode = async (req, res) => {
 	const { email, providedCode, newPassword } = req.body;
 	try {
-		const { error, value } = acceptFPCodeSchema.validate({ email, providedCode, newPassword });
+		const { error, value } = acceptFPCodeSchema.validate({
+			email,
+			providedCode,
+			newPassword,
+		});
 		if (error) {
 			return res
 				.status(401)
@@ -283,7 +287,10 @@ exports.verifyForgotPasswordCode = async (req, res) => {
 				.json({ success: false, message: 'something is wrong with the code!' });
 		}
 
-		if (Date.now() - existingUser.forgotPasswordValidation > 5 * 60 * 1000) {
+		if (
+			Date.now() - existingUser.forgotPasswordCodeValidation >
+			5 * 60 * 1000
+		) {
 			return res
 				.status(400)
 				.json({ success: false, message: 'code has been expired!' });
@@ -295,13 +302,14 @@ exports.verifyForgotPasswordCode = async (req, res) => {
 		);
 
 		if (hashedCodeValue === existingUser.forgotPasswordCode) {
-			existingUser.verified = true;
+			const hashedPassword = await doHash(newPassword, 12);
+			existingUser.password = hashedPassword;
 			existingUser.forgotPasswordCode = undefined;
 			existingUser.forgotPasswordCodeValidation = undefined;
 			await existingUser.save();
 			return res
 				.status(200)
-				.json({ success: true, message: 'your account has been verified!' });
+				.json({ success: true, message: 'Password updated!!' });
 		}
 		return res
 			.status(400)
