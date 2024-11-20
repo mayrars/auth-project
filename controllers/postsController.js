@@ -21,8 +21,11 @@ exports.getPosts = async(req, res) => {
 exports.singlePosts = async(req, res) => {
     const {_id} = req.query
     try{
-        const result = await post.findOne({_id})
-        res.status(200).json({success: true, message: 'single post', data: result})
+        const existingPost = await post.findOne({_id})
+		if(!existingPost){
+			return res.status(404).json({success: false, message: 'post unavailable'})
+		}
+		res.status(200).json({success: true, message: 'single post', data: existingPost})
     }catch(error){
         console.log(error)
     }
@@ -49,6 +52,38 @@ exports.createPost = async (req, res) => {
 			userId,
 		});
 		res.status(201).json({ success: true, message: 'created', data: result });
+	} catch (error) {
+		console.log(error);
+	}
+};
+
+exports.updatePost = async (req, res) => {
+	const {_id} = req.query;
+	const { title, description } = req.body;
+	const { userId } = req.user;
+	try {
+		const { error, value } = createPostSchema.validate({
+			title,
+			description,
+			userId,
+		});
+		if (error) {
+			return res
+				.status(401)
+				.json({ success: false, message: error.details[0].message });
+		}
+		const existingPost = await post.findOne({ _id });
+		if(!existingPost){
+			return res.status(404).json({success: false, message: 'post unavailable'})
+		}
+		if(existingPost.userId.toString() !== userId){
+			return res.status(404).json({success: false, message: 'Unauthorized'})
+		}
+
+		existingPost.title = title;
+		existingPost.description = description;
+		const result = await existingPost.save();
+		res.status(200).json({ success: true, message: 'Updated', data: result });
 	} catch (error) {
 		console.log(error);
 	}
