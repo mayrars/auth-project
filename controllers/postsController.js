@@ -88,3 +88,21 @@ exports.updatePost = async (req, res) => {
 		console.log(error);
 	}
 };
+
+exports.deletePost = async (req, res) => {
+	const {_id} = req.query;
+	const { userId } = req.user;
+	try {
+		const existingPost = await post.findOne({ _id });
+		if(!existingPost){
+			return res.status(404).json({success: false, message: 'post already unavailable'})
+		}
+		if(existingPost.userId.toString() !== userId){
+			return res.status(404).json({success: false, message: 'Unauthorized'})
+		}
+		await post.deleteOne({_id})
+		res.status(200).json({ success: true, message: 'Deleted' });
+	} catch (error) {
+		console.log(error);
+	}
+};
